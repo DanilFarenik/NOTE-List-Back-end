@@ -6,10 +6,10 @@ import { NoteModule } from './note/note.module';
   imports: [
     NoteModule,
     ConfigModule.forRoot({
-      envFilePath: ".env"
-    })
+      envFilePath: '.env',
+    }),
   ],
   controllers: [],
   providers: [],
 })
-export class AppModule { }
+export class AppModule {}
