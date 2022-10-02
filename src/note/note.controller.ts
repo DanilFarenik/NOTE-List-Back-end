@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
@@ -14,62 +15,61 @@ import { CreateNoteDto } from './dto/create-note.dto';
 import { EditNoteDto } from './dto/edit-note.dto';
 import { Note } from './note.entity';
 import { NoteService } from './note.service';
-import { ErrorScheme } from 'src/doc-schemes/error.scheme';
-import { SuccessScheme } from 'src/doc-schemes/success.scheme';
+import { ErrorScheme, Scheme } from '../doc-schemes/provider.scheme';
 
-@ApiTags('Note')
-@Controller('note')
+@ApiTags('Notes')
+@Controller('notes')
 export class NoteController {
-  constructor(private readonly noteService: NoteService) {}
+  constructor(private readonly noteService: NoteService) { }
 
   @Post()
-  @ApiResponse({ status: 200, type: SuccessScheme })
+  @ApiResponse({ status: 201, type: Scheme })
   @ApiResponse({
     status: 400,
     type: ErrorScheme,
     description: 'Incorrect data',
   })
-  createNote(@Body() noteDto: CreateNoteDto) {
-    this.noteService.createNote(noteDto);
+  async createNote(@Body() noteDto: CreateNoteDto) {
+    await this.noteService.createNote(noteDto);
 
-    return { status: 'OK' };
+    return { statusCode: HttpStatus.CREATED, message: "OK" };
   }
 
   @Get('/stats')
   @ApiResponse({ status: 200, type: [Stats] })
-  getStats() {
-    return this.noteService.getStats();
+  async getStats() {
+    return await this.noteService.getStats();
   }
 
   @Delete(':id')
-  @ApiResponse({ status: 200, type: SuccessScheme })
+  @ApiResponse({ status: 200, type: Scheme })
   @ApiResponse({
     status: 400,
     type: ErrorScheme,
     description: 'Incorrect data',
   })
   @ApiResponse({ status: 404, type: ErrorScheme, description: 'id not found' })
-  deleteNote(@Param('id', ParseIntPipe) uuid: number) {
-    this.noteService.deleteNote(uuid);
+  async deleteNote(@Param('id', ParseIntPipe) uuid: number) {
+    await this.noteService.deleteNote(uuid);
 
-    return { status: 'OK' };
+    return { statusCode: HttpStatus.OK, message: "OK" };
   }
 
   @Patch(':id')
-  @ApiResponse({ status: 200, type: SuccessScheme })
+  @ApiResponse({ status: 200, type: Scheme })
   @ApiResponse({
     status: 400,
     type: ErrorScheme,
     description: 'Incorrect data',
   })
   @ApiResponse({ status: 404, type: ErrorScheme, description: 'id not found' })
-  editNote(
+  async editNote(
     @Body() noteDto: EditNoteDto,
     @Param('id', ParseIntPipe) uuid: number,
   ) {
-    this.noteService.editNote(noteDto, uuid);
+    await this.noteService.editNote(noteDto, uuid);
 
-    return { status: 'OK' };
+    return { statusCode: HttpStatus.OK, message: "OK" };
   }
 
   @Get(':id')
@@ -80,13 +80,13 @@ export class NoteController {
     description: 'Incorrect data',
   })
   @ApiResponse({ status: 404, type: ErrorScheme, description: 'id not found' })
-  getNote(@Param('id', ParseIntPipe) uuid: number) {
-    return this.noteService.getNote(uuid);
+  async getNote(@Param('id', ParseIntPipe) uuid: number) {
+    return await this.noteService.getNote(uuid);
   }
 
   @Get()
   @ApiResponse({ status: 200, type: [Note] })
-  getNotes() {
-    return this.noteService.getNotes();
+  async getNotes() {
+    return await this.noteService.getNotes();
   }
 }
