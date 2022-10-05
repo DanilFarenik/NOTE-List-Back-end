@@ -1,15 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class ErrorScheme {
-  @ApiProperty({ example: '400', description: 'Code error' })
+export class Scheme {
+  @ApiProperty({ example: '2** | 4**', description: 'Status code' })
   statusCode: number;
 
   @ApiProperty({
-    example: ['Category does not exist'],
-    description: 'Error list',
+    example: "OK",
+    description: 'Message list',
   })
   message: string[] | string;
+}
 
+
+export class ErrorScheme extends Scheme {
   @ApiProperty({ example: 'Bad Request', description: 'Error description' })
   error: string;
 }

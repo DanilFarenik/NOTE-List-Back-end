@@ -1,78 +1,78 @@
 import { Injectable } from '@nestjs/common';
-import { getDateOfCreation, getDatesOfString, uuid } from '../util';
+import { InjectModel } from '@nestjs/sequelize';
+import { NotFoundException } from 'src/exceptions/not-found.exception';
+import { uuid } from '../util';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { EditNoteDto } from './dto/edit-note.dto';
 import { IAccumulateStats } from './interface/accumulate-stats.interface';
 import { IEditNote } from './interface/note-edit.interface';
-import { INote } from './interface/note.interface';
 import { IStats } from './interface/stats.interface';
-import noteDB from './note.model';
+import { Note } from './note.entity';
+
 
 @Injectable()
 export class NoteService {
-  noteDB: typeof noteDB;
 
-  constructor() {
-    this.noteDB = noteDB;
-  }
+  constructor(@InjectModel(Note) private noteRepository: typeof Note) { }
 
-  createNote(dto: CreateNoteDto) {
+  async createNote(dto: CreateNoteDto) {
     const note = {
       name: dto.name.trim(),
-      date: getDatesOfString(dto.text),
       category: dto.category,
       text: dto.text.trim(),
-      dateOfCreation: getDateOfCreation(),
       archived: false,
-      id: uuid(),
     };
 
-    this.noteDB.add(note);
+    await this.noteRepository.create(note);
   }
 
-  deleteNote(id: number) {
-    this.noteDB.delete(id);
+  async deleteNote(uuid: number) {
+    const note = await this.noteRepository.destroy({ where: { id: uuid } });
+
+    if (!note) throw new NotFoundException(`note is not found - ${uuid}`);
+
+    return note;
   }
 
-  editNote(dto: EditNoteDto, uuid: number) {
+  async editNote(dto: EditNoteDto, uuid: number) {
     const newNoteData: IEditNote = {};
 
     if (dto.name) newNoteData.name = dto.name.trim();
-
     if (dto.archived) newNoteData.archived = dto.archived;
-
     if (dto.category) newNoteData.category = dto.category;
+    if (dto.text) newNoteData.text = dto.text.trim();
 
-    if (dto.text) {
-      newNoteData.date = getDatesOfString(dto.text);
-      newNoteData.text = dto.text.trim();
-    }
+    const note = await this.noteRepository.update(newNoteData, { where: { id: uuid } });
 
-    this.noteDB.edit(newNoteData, uuid);
+    if (!note[0]) throw new NotFoundException(`note is not found - ${uuid}`);
   }
 
-  getNote(uuid: number): INote {
-    return this.noteDB.get(uuid);
+  async getNote(uuid: number): Promise<Note> {
+    const note = await this.noteRepository.findOne({ where: { id: uuid } });
+
+    if (!note) throw new NotFoundException(`note is not found - ${uuid}`);
+
+    return note;
   }
 
-  getNotes(): INote[] {
-    return this.noteDB.get();
+  async getNotes(): Promise<Note[]> {
+    return this.noteRepository.findAll();
   }
 
-  getStats(): IStats[] {
-    const stats: IAccumulateStats = this.noteDB
-      .get()
-      .reduce((accumulate, note) => {
-        if (!accumulate[note.category]) {
-          accumulate[note.category] = { active: 0, archive: 0 };
-        }
+  async getStats(): Promise<IStats[]> {
+    const notes: Note[] = await this.noteRepository.findAll();
 
-        !note.archived
-          ? ++accumulate[note.category].active
-          : ++accumulate[note.category].archive;
+    const stats = notes.reduce<IAccumulateStats>((accumulate, note) => {
+      if (!accumulate[note.category]) {
+        accumulate[note.category] = { active: 0, archive: 0 };
+      }
 
-        return accumulate;
-      }, {});
+      !note.archived
+        ? ++accumulate[note.category].active
+        : ++accumulate[note.category].archive;
+
+      return accumulate;
+    }, {});
 
     return Object.entries(stats).map((item) => ({
       name: item[0],
